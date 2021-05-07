@@ -17,7 +17,7 @@ const Room = struct {
             if (connectedKey == user) continue;
             const connectionWriter = connectedKey.connection.file.writer();
             //const msg = toBC[user.name.len + 2 ..];
-            connectionWriter.print("\x1b[32;1m{}:\x1b[0m {}\r\n", .{ user.name, toBC }) catch {
+            connectionWriter.print("\n\x1b[32;1m{}:\x1b[0m {}\r\n", .{ user.name, toBC }) catch {
                 _ = self.connected.remove(connectedKey);
             };
         }
