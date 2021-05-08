@@ -23,6 +23,10 @@ const Room = struct {
         }
     }
 
+    fn removeUser(self: *Room, user: *User) void {
+        _ = self.connected.remove(user);
+    }
+
     //fn handle(self: *Room, allocator: *Allocater) void {
     //   var iterDconnected = self.connected.iterator();
     //  while (true) {
@@ -44,16 +48,21 @@ const User = struct {
     name: []const u8,
 
     fn handle(self: *User, allocator: *Allocater, room: *Room) void {
+        defer allocator.destroy(self);
         const connectionReader = self.connection.file.reader();
         const connectionWriter = self.connection.file.writer();
         self.getInfo(allocator, &connectionReader, &connectionWriter);
         // print("{}\n", .{@typeName(@TypeOf(connectionReader))});
         while (true) {
-            connectionWriter.print("\x1b[31;1m{}:\x1b[0m ", .{self.name}) catch {};
+            connectionWriter.print("\x1b[31;1m{}(me):\x1b[0m ", .{self.name}) catch {};
             if (connectionReader.readUntilDelimiterAlloc(allocator, '\n', 1024)) |msg| {
                 room.broadcast(msg, self);
             } else |_| {
-                continue;
+                print("bruh1\n", .{});
+                // FOUND IT, IT BE HERE
+                room.removeUser(self);
+                // defer allocator.destroy(self);
+                return;
             }
         }
     }
