@@ -25,6 +25,13 @@ const Room = struct {
 
     fn removeUser(self: *Room, user: *User) void {
         _ = self.connected.remove(user);
+        var iterDconnected = self.connected.iterator();
+        while (iterDconnected.next()) |sConnected| {
+            const connectionWriter = sConnected.key.connection.file.writer();
+            connectionWriter.print("\n\x1b[35;2m{} has left.\x1b[0m\r\n", .{user.name}) catch {
+                _ = self.connected.remove(sConnected.key);
+            };
+        }
     }
 
     //fn handle(self: *Room, allocator: *Allocater) void {
