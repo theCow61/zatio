@@ -17,7 +17,10 @@ const Room = struct {
             if (connectedKey == user) continue;
             const connectionWriter = connectedKey.connection.file.writer();
             //const msg = toBC[user.name.len + 2 ..];
-            connectionWriter.print("\n\x1b[32;1m{}:\x1b[0m {}\r\n", .{ user.name, toBC }) catch {
+            /////////?DEBATE(0R)?/////////////connectionWriter.print("\n\x1b[32;1m{}:\x1b[0m {}\r\n", .{ user.name, toBC }) catch {
+            //_ = self.connected.remove(connectedKey);
+            //};
+            connectionWriter.print("\x1b[32;1m{}:\x1b[0m {}\r\n", .{ user.name, toBC }) catch {
                 _ = self.connected.remove(connectedKey);
             };
         }
@@ -49,6 +52,39 @@ const Room = struct {
     //}
 };
 
+const ClientInfo = struct {
+    name: []u8,
+
+    fn init(allocator: *Allocater, name: []const u8) !ClientInfo {
+        return ClientInfo{
+            .name = try allocator.dupe(u8, name),
+        };
+    }
+
+    fn deinit(self: *ClientInfo, allocator: *Allocater) void {
+        allocator.free(self.name);
+    }
+
+    // Change from anytype to Writer that has (anytype, anytype, anytype) or something like that.
+    fn serialize(self: *ClientInfo, writer: anytype) !void {
+        try writer.writeIntLittle(usize, self.name.len);
+        try writer.writeAll(self.name);
+    }
+
+    // Change from anytype to Reader that has (anytype, anytype, anytype) or something like that.
+    fn deserialize(allocator: *Allocater, reader: anytype) !ClientInfo {
+        const name_len = try reader.readIntLittle(usize);
+        var name = try allocator.alloc(u8, name_len);
+        errdefer allocator.free(name);
+
+        try reader.readNoEof(name);
+
+        return ClientInfo{
+            .name = name,
+        };
+    }
+};
+
 const User = struct {
     connection: std.net.StreamServer.Connection,
     handleFrame: @Frame(handle),
@@ -58,14 +94,40 @@ const User = struct {
         defer allocator.destroy(self);
         const connectionReader = self.connection.file.reader();
         const connectionWriter = self.connection.file.writer();
-        self.getInfo(allocator, &connectionReader, &connectionWriter);
+
+        // Deserializing
+
+        // var clientInfo = ClientInfo.deserialize(allocator, connectionReader) catch unreachable;
+        // defer clientInfo.deinit(allocator);
+        // print("{}\n", .{clientInfo.name});
+
+        if (ClientInfo.deserialize(allocator, connectionReader)) |info| {
+            self.name = info.name;
+        } else |_| {
+            self.getInfo(allocator, &connectionReader, &connectionWriter);
+        }
+
+        ////////////////?FIX(0R)?/////////////////// const name = self.name;
+        const name = self.name;
+
+        // var usrInfo = ClientInfo.deserialize(allocator, connectionReader);
+        // if (usrInfo) |clientInfo| {
+        //     defer clientInfo.deinit(allocator);
+        //     self.name = clientInfo.name;
+        // } else |_| {
+        //     self.getInfo(allocator, &connectionReader, &connectionWriter);
+        // }
+
+        // self.getInfo(allocator, &connectionReader, &connectionWriter);
         // print("{}\n", .{@typeName(@TypeOf(connectionReader))});
         while (true) {
-            connectionWriter.print("\x1b[31;1m{}(me):\x1b[0m ", .{self.name}) catch {};
+            ////////////////////?DEBATE(0)?/////////////////////connectionWriter.print("\x1b[31;1m{}(me):\x1b[0m ", .{self.name}) catch {};
             if (connectionReader.readUntilDelimiterAlloc(allocator, '\n', 1024)) |msg| {
+
+                //////////////?FIX(0)?///////////// self.name = name; # have to reinstantinate self.name once it reaches if statement, why is self.name changing while in this if statement?
+                self.name = name;
                 room.broadcast(msg, self);
             } else |_| {
-                print("bruh1\n", .{});
                 // FOUND IT, IT BE HERE
                 room.removeUser(self);
                 // defer allocator.destroy(self);
