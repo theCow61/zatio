@@ -110,9 +110,8 @@ fn getMessage(allocator: *Allocator, connReader: anytype) !void {
         // NEED TO MAKE THIS STDOUT
 
         // WHY WONT EXACT PORT OF PRINT FOR STDOUT WORK BUT PRINT WITH STDERR WILL !
-        // stdoutPrint("{}\r\n", .{msg});
-
-        dprint("{}\r\n", .{msg}); // Gonna be stuck with this for a while until you figure out the issue with stdout.
+        stdoutPrint("{}\r\n", .{msg});
+        // dprint("{}\r\n", .{msg}); // Gonna be stuck with this for a while until you figure out the issue with stdout.
 
         // try stdoutWriter.print("{}\r\n", .{msg});
 
@@ -129,6 +128,7 @@ fn getMessage(allocator: *Allocator, connReader: anytype) !void {
 }
 
 fn stdoutPrint(comptime fmt: []const u8, args: anytype) void {
-    const stdout = std.io.getStdOut().writer();
-    stdout.print(fmt, args) catch return;
+    var stdout = std.io.getStdOut();
+    stdout.intended_io_mode = .blocking;
+    stdout.writer().print(fmt, args) catch return;
 }
