@@ -149,6 +149,7 @@ const User = struct {
 pub fn start(ip: [4]u8, port: u16) !void {
     var listener = std.net.StreamServer.init(.{});
     defer listener.deinit();
+    errdefer listener.deinit();
     listener.listen(std.net.Address.parseIp4("0.0.0.0", 42069) catch |err| {
         print("err: {}\n", .{err});
         return err;
