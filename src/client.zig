@@ -81,7 +81,7 @@ pub fn start(ip: []const u8, port: u16) !void {
 
         // allocator.destroy(msg);
         var msg = stdinReader.readUntilDelimiterAlloc(allocator, '\n', 1024) catch |_| continue;
-        connWriter.print("{}\r\n", .{msg}) catch {};
+        connWriter.print("{s}\r\n", .{msg}) catch {};
         allocator.free(msg);
     }
     try await getMessageFrame;
@@ -110,7 +110,7 @@ fn getMessage(allocator: *Allocator, connReader: anytype) !void {
         // NEED TO MAKE THIS STDOUT
 
         // WHY WONT EXACT PORT OF PRINT FOR STDOUT WORK BUT PRINT WITH STDERR WILL !
-        stdoutPrint("{}\r\n", .{msg});
+        stdoutPrint("{s}\r\n", .{msg});
         // dprint("{}\r\n", .{msg}); // Gonna be stuck with this for a while until you figure out the issue with stdout.
 
         // try stdoutWriter.print("{}\r\n", .{msg});

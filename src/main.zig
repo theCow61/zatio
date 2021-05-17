@@ -1,4 +1,5 @@
 const std = @import("std");
+const argz = @import("args");
 const server = @import("server.zig");
 const client = @import("client.zig");
 const Allocater = std.mem.Allocator;
@@ -92,28 +93,74 @@ pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const alloc = &arena.allocator;
-    //arg0 = if (arg0) |arg| arg else unreachable;
-    var args = std.process.ArgIterator.init();
-    defer args.deinit();
-    _ = args.skip();
-    const arg0 = if (args.next(alloc)) |arg| arg catch unreachable else {
-        print("format: zatio [server/client]\n", .{});
-        return;
-    };
-    //var string: [6]u8 = "server";
-    //if (&arg0[0..:0] == "server") {}
-    //const br = "hi";
-    if (std.mem.eql(u8, try std.ascii.allocLowerString(alloc, arg0), "server")) {
-        const ip: [4]u8 = [4]u8{ 0, 0, 0, 0 };
-        //try server(ip, 42069);
-        try server.start(ip, 42069);
-        //try serv(ip, 42069);
-    } else if (std.mem.eql(u8, try std.ascii.allocLowerString(alloc, arg0), "client")) {
-        // try client([4]u8{ 127, 0, 0, 1 }, 42069);
-        const ip = "0.0.0.0";
-        try client.start(ip, 42069);
+
+    const options = argz.parseForCurrentProcess(struct {
+        host: []const u8 = "0.0.0.0",
+        port: u16 = 42069,
+        // mode: enum { server, client } = .client,
+
+        // @"Port": u16 = 42069,
+        // @"Host": []const u8 = "0.0.0.0",
+
+        @"server": bool = false,
+        @"client": bool = true,
+
+        pub const shorthands = .{
+            .p = "port",
+            .h = "host",
+            .s = "server",
+            .c = "client",
+        };
+    }, alloc, .print) catch return;
+    defer options.deinit();
+
+    // if (options.options.@"client" == true and options.options.@"server" == true) {
+    //     print("Can't be client and server at same time.\n", .{});
+    //     return;
+    // }
+    if (options.options.@"server" == true) {
+        try server.start(options.options.host, options.options.port);
     } else {
-        print("format: zatio [server/client]\n", .{});
+        try client.start(options.options.host, options.options.port);
     }
-    print("\n", .{});
+    // print("executable name: {s}\n", .{options.executable_name});
+
+    // print("parsed options:\n", .{});
+
+    // inline for (std.meta.fields(@TypeOf(options.options))) |fld| {
+    //     print("\t{s} = {any}\n", .{
+    //         fld.name,
+    //         @field(options.options, fld.name),
+    //     });
+    // }
+    // print("parsed positionals:\n", .{});
+    // for (options.positionals) |arg| {
+    //     print("\t'{s}'\n", .{arg});
+    // }
+
+    ////arg0 = if (arg0) |arg| arg else unreachable;
+    //var args = std.process.ArgIterator.init();
+    //defer args.deinit();
+    //_ = args.skip();
+    //const arg0 = if (args.next(alloc)) |arg| arg catch unreachable else {
+    //    print("format: zatio [server/client]\n", .{});
+    //    return;
+    //};
+    //// TODO: Allow users to give their own ip and port through arguments.
+    ////var string: [6]u8 = "server";
+    ////if (&arg0[0..:0] == "server") {}
+    ////const br = "hi";
+    //if (std.mem.eql(u8, try std.ascii.allocLowerString(alloc, arg0), "server")) {
+    //    const ip: [4]u8 = [4]u8{ 0, 0, 0, 0 };
+    //    //try server(ip, 42069);
+    //    try server.start(ip, 42069);
+    //    //try serv(ip, 42069);
+    //} else if (std.mem.eql(u8, try std.ascii.allocLowerString(alloc, arg0), "client")) {
+    //    // try client([4]u8{ 127, 0, 0, 1 }, 42069);
+    //    const ip = "0.0.0.0";
+    //    try client.start(ip, 42069);
+    //} else {
+    //    print("format: zatio [server/client]\n", .{});
+    //}
+    //print("\n", .{});
 }

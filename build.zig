@@ -14,6 +14,10 @@ pub fn build(b: *Builder) void {
     const exe = b.addExecutable("zatio", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
+    exe.addPackage(.{
+        .name = "args",
+        .path = "libs/zig-args/args.zig",
+    });
     exe.install();
 
     const run_cmd = exe.run();

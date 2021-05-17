@@ -15,12 +15,13 @@ const Room = struct {
             //print("{}\n", .{sConnected.key});
             const connectedKey = sConnected.key;
             if (connectedKey == user) continue;
-            const connectionWriter = connectedKey.connection.file.writer();
+            // const connectionWriter = connectedKey.connection.file.writer();
+            const connectionWriter = connectedKey.connection.stream.writer();
             //const msg = toBC[user.name.len + 2 ..];
             /////////?DEBATE(0R)?/////////////connectionWriter.print("\n\x1b[32;1m{}:\x1b[0m {}\r\n", .{ user.name, toBC }) catch {
             //_ = self.connected.remove(connectedKey);
             //};
-            connectionWriter.print("\x1b[32;1m{}:\x1b[0m {}\r\n", .{ user.name, toBC }) catch {
+            connectionWriter.print("\x1b[32;1m{s}:\x1b[0m {s}\r\n", .{ user.name, toBC }) catch {
                 _ = self.connected.remove(connectedKey);
             };
         }
@@ -30,8 +31,9 @@ const Room = struct {
         _ = self.connected.remove(user);
         var iterDconnected = self.connected.iterator();
         while (iterDconnected.next()) |sConnected| {
-            const connectionWriter = sConnected.key.connection.file.writer();
-            connectionWriter.print("\n\x1b[35;2m{} has left.\x1b[0m\r\n", .{user.name}) catch {
+            // const connectionWriter = sConnected.key.connection.file.writer();
+            const connectionWriter = sConnected.key.connection.stream.writer();
+            connectionWriter.print("\n\x1b[35;2m{s} has left.\x1b[0m\r\n", .{user.name}) catch {
                 _ = self.connected.remove(sConnected.key);
             };
         }
@@ -92,8 +94,10 @@ const User = struct {
 
     fn handle(self: *User, allocator: *Allocater, room: *Room) void {
         defer allocator.destroy(self);
-        const connectionReader = self.connection.file.reader();
-        const connectionWriter = self.connection.file.writer();
+        // const connectionReader = self.connection.file.reader();
+        // const connectionWriter = self.connection.file.writer();
+        const connectionReader = self.connection.stream.reader();
+        const connectionWriter = self.connection.stream.writer();
 
         // Deserializing
 
@@ -104,7 +108,7 @@ const User = struct {
         if (ClientInfo.deserialize(allocator, connectionReader)) |info| {
             self.name = info.name;
         } else |_| {
-            self.getInfo(allocator, &connectionReader, &connectionWriter);
+            self.getInfo(allocator, connectionReader, connectionWriter);
         }
 
         ////////////////?FIX(0R)?/////////////////// const name = self.name;
@@ -136,9 +140,9 @@ const User = struct {
         }
     }
     // std.io.reader.Reader(std.fs.file.File,std.os.ReadError,std.fs.file.File.read)
-    fn getInfo(self: *User, allocator: *Allocater, connectionReader: *const std.io.Reader(std.fs.File, std.os.ReadError, std.fs.File.read), connectionWriter: *const std.io.Writer(std.fs.File, std.os.WriteError, std.fs.File.write)) void {
+    fn getInfo(self: *User, allocator: *Allocater, connectionReader: anytype, connectionWriter: anytype) void {
         connectionWriter.print("\x1b[33;1mIdentifier:\x1b[0m ", .{}) catch {};
-        if (connectionReader.*.readUntilDelimiterAlloc(allocator, '\n', 12)) |name| {
+        if (connectionReader.readUntilDelimiterAlloc(allocator, '\n', 12)) |name| {
             self.name = name;
         } else |_| {
             // Use error and see if error is of To Long error and say cant be over 12 then ask for input again.
@@ -146,11 +150,11 @@ const User = struct {
     }
 };
 
-pub fn start(ip: [4]u8, port: u16) !void {
+pub fn start(ip: []const u8, port: u16) !void {
     var listener = std.net.StreamServer.init(.{});
     defer listener.deinit();
     errdefer listener.deinit();
-    listener.listen(std.net.Address.parseIp4("0.0.0.0", 42069) catch |err| {
+    listener.listen(std.net.Address.parseIp4(ip, 42069) catch |err| {
         print("err: {}\n", .{err});
         return err;
     }) catch |err| {
