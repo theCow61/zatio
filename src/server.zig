@@ -124,6 +124,8 @@ const User = struct {
 
         // self.getInfo(allocator, &connectionReader, &connectionWriter);
         // print("{}\n", .{@typeName(@TypeOf(connectionReader))});
+
+        room.broadcast(std.fmt.allocPrint(allocator, "\n\x1b[35;2m{s} has joined.\x1b[0m\r\n", .{name}) catch unreachable, self);
         while (true) {
             ////////////////////?DEBATE(0)?/////////////////////connectionWriter.print("\x1b[31;1m{}(me):\x1b[0m ", .{self.name}) catch {};
             if (connectionReader.readUntilDelimiterAlloc(allocator, '\n', 1024)) |msg| {
